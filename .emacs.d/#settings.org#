@@ -1,0 +1,169 @@
+#+AUTHOR: Ajayant Katoch
+#+TITLE: GNU Emacs Configuration
+
+* Emacs Initialization
+  
+This section contains the basic commands you need to know to properly initialize
+your GNU Emacs.
+
+** Package Sources
+
+To install packages, it is useful to configure the package sources.
+
+#+begin_src emacs-lisp
+  (setq package-archives '(("elpa" . "https://elpa.gnu.org/packages/")
+                           ("melpa" . "https://melpa.org/packages/")
+                           ("nongnu" . "https://elpa.nongnu.org/nongnu/")))
+#+end_src
+
+** Package Configurations
+
+To manage the package configurations with =use-package=, you must install it with the following code snippet.
+
+#+begin_src emacs-lisp
+  (unless (package-installed-p 'use-package)
+    (package-refresh-contents)
+    (package-install 'use-package))
+
+  (use-package delight :ensure t)
+  (use-package use-package-ensure-system-package :ensure t)
+#+end_src
+
+* Start Up
+
+This section contains the packages and configurations needed to get started with
+GNU Emacs.
+
+** Defaults
+
+For a better user experience of GNU Emacs, here are the default values that I use.
+
+#+begin_src emacs-lisp
+  (setq-default
+   cursor-in-non-selected-windows t                 ; Hide the cursor in inactive windows
+   help-window-select t                             ; Focus new help windows when opened
+   inhibit-startup-screen t                         ; Disable start-up screen
+   initial-scratch-message ""                       ; Empty the initial *scratch* buffer
+   load-prefer-newer t                              ; Prefer the newest version of a file
+   scroll-conservatively most-positive-fixnum       ; Always scroll by one line
+   select-enable-clipboard t                        ; Merge system's and Emacs' clipboard
+   use-package-always-ensure t                      ; Avoid the :ensure keyword for each package
+   user-full-name "Ajayant Katoch"                  ; Set the full name of the current user
+   user-mail-address "ajayant@outlook.com")         ; Set the email address of the current user
+  (column-number-mode 1)                            ; Show the column number
+  (fset 'yes-or-no-p 'y-or-n-p)                     ; Replace yes/no prompts with y/n
+  (global-hl-line-mode)                             ; Hightlight current line
+  (set-default-coding-systems 'utf-8)               ; Default to utf-8 encoding
+  (global-linum-mode 1)                             ; Display line number
+#+end_src
+
+** Theme
+
+I am a fan of [[https://github.com/ChrisKempson/Tomorrow-Theme][tomorrow-night]] and combined with [[https://github.com/seagle0128/doom-modeline][doom-modeline]] it's happiness! To
+get icons in the =doom-modeline=, you will need to install [[#icons][icons]].
+
+#+begin_src emacs-lisp
+  (use-package doom-themes
+    :config
+    (load-theme 'doom-tomorrow-night t)
+    (doom-themes-org-config))
+
+  (use-package doom-modeline
+    :init (doom-modeline-mode)
+    :custom
+    (doom-modeline-icon (display-graphic-p))
+    (doom-modeline-mu4e t))
+#+end_src
+
+Since we do not do things by halves, it is also interesting to visually
+differentiate "real" buffers (e.g., buffers that contain our work) from "unreal"
+buffers (e.g., popups) by giving the latter a darker color. From then on,
+[[https://github.com/hlissner/emacs-solaire-mode][solar-mode]] is the ideal package.
+
+#+begin_src emacs-lisp
+  (use-package solaire-mode
+    :defer 0.1
+    :custom (solaire-mode-remap-fringe t)
+    :config (solaire-global-mode))
+#+end_src
+
+** Remove Mouse Interface
+
+If you have to use the mouse with GNU Emacs, you probably have the wrong text
+editor. Let's remove all those menu items related to the mouse interface.
+
+#+begin_src emacs-lisp
+  (when window-system
+    (menu-bar-mode -1)
+    (scroll-bar-mode -1)
+    (tool-bar-mode -1)
+    (tooltip-mode -1))
+#+end_src
+
+* Advance Configurations 
+
+** Icons
+
+To integrate icons with =doom-modeline= and other packages, [[https://github.com/domtronn/all-the-icons.el/][all-the-icons]] is the best package that you can have with GNU Emacs. To download the icons on your machine, you must run the =all-the-icons-install-fonts= command when you install this package.
+
+#+begin_src emacs-lisp
+  (use-package all-the-icons
+    :if (display-graphic-p)
+    :commands all-the-icons-install-fonts
+    :config (unless (find-font (font-spec :name "all-the-icons"))
+              (all-the-icons-install-fonts t)))
+#+end_src
+* Management
+Section dedicated to managing buffers, files, and windows on GNU Emacs to
+provide a more pleasant experience.
+** Buffers
+   
+
+Buffers can quickly become a mess to manage. To manage them better, I use the
+=ibuffer= built-in package instead of =buffer-menu=, to have a nicer visual
+interface with a syntax color.
+
+In addition, some buffers may contain useful temporary information that should
+not be killed by accident. I make sure to set the buffers =*scratch*= and
+=*Messages*= to read-only.
+
+#+begin_src emacs-lisp
+  (use-package ibuffer
+    :ensure nil
+    :preface
+    (defvar protected-buffers '("*scratch*" "*Messages*")
+      "Buffer that cannot be killed.")
+
+    (defun my/protected-buffers ()
+      "Protect some buffers from being killed."
+      (dolist (buffer protected-buffers)
+        (with-current-buffer buffer
+          (emacs-lock-mode 'kill))))
+    :bind ("C-x C-b" . ibuffer)
+    :init (my/protected-buffers))
+#+end_src
+
+** Files 
+Sometimes you may want to discard your changes to a file and revert to the saved
+version of this file.
+#+begin_src emacs-lisp
+  (use-package autorevert
+    :ensure nil
+    :delight auto-revert-mode
+    :bind ("C-x R" . revert-buffer)
+    :custom (auto-revert-verbose nil)
+    :config (global-auto-revert-mode))
+#+end_src
+
+* Minibuffer Completion
+** Selectrum 
+#+begin_src emacs-lisp
+(use-package selectrum
+  :ensure t
+  :init (selectrum-mode +1))
+#+end_src
+
+
+#+begin_src emacs-lisp
+(use-package 
+#+end_src
