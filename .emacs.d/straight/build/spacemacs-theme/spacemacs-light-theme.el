@@ -1,0 +1,1 @@
+/Users/ajayantkatoch/repos/delphianknife/.emacs.d/straight/repos/spacemacs-theme/spacemacs-light-theme.el

@@ -1,0 +1,1 @@
+/Users/ajayantkatoch/repos/delphianknife/.emacs.d/straight/repos/corfu/corfu.el

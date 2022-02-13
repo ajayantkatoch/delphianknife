@@ -1,0 +1,1 @@
+/Users/ajayantkatoch/repos/delphianknife/.emacs.d/straight/repos/themes/themes/doom-homage-white-theme.el

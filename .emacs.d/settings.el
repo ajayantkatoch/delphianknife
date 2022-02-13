@@ -1,13 +1,20 @@
-(setq package-archives '(("elpa" . "https://elpa.gnu.org/packages/")
-                         ("melpa" . "https://melpa.org/packages/")
-                         ("nongnu" . "https://elpa.nongnu.org/nongnu/")))
+(defvar bootstrap-version) 
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el"
+     user-emacs-directory))
+       (bootstrap-version 5))
+    (unless (file-exists-p bootstrap-file)
+      (let ((install.el
+	     "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"))
+	(with-current-buffer
+	    (url-retrieve-synchronously install.el 'silent 'inhibit-cookies)
+	  (goto-char (point-max))
+	  (eval-print-last-sexp))))
+    (load bootstrap-file nil 'nomessage))
 
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
-
-(use-package delight :ensure t)
-(use-package use-package-ensure-system-package :ensure t)
+(setq-default straight-use-package-by-default t) 
+(straight-use-package 'use-package)
+(setq-default use-package-always-defer t)
 
 (setq-default
  cursor-in-non-selected-windows t                 ; Hide the cursor in inactive windows
@@ -23,24 +30,15 @@
 (column-number-mode 1)                            ; Show the column number
 (fset 'yes-or-no-p 'y-or-n-p)                     ; Replace yes/no prompts with y/n
 (global-hl-line-mode)                             ; Hightlight current line
-(set-default-coding-systems 'utf-8)               ; Default to utf-8 encoding
 (global-linum-mode 1)                             ; Display line number
 
-(use-package doom-themes
-  :config
-  (load-theme 'doom-tomorrow-night t)
-  (doom-themes-org-config))
+(use-package kaolin-themes
+  :straight kaolin-themes
+  :init
+  (load-theme 'kaolin-bubblegum t))
 
 (use-package doom-modeline
-  :init (doom-modeline-mode)
-  :custom
-  (doom-modeline-icon (display-graphic-p))
-  (doom-modeline-mu4e t))
-
-(use-package solaire-mode
-  :defer 0.1
-  :custom (solaire-mode-remap-fringe t)
-  :config (solaire-global-mode))
+ :hook (after-init . doom-modeline-mode))
 
 (when window-system
   (menu-bar-mode -1)
@@ -48,33 +46,147 @@
   (tool-bar-mode -1)
   (tooltip-mode -1))
 
+(setq locale-coding-system 'utf-8)
+  (set-terminal-coding-system 'utf-8)
+  (set-keyboard-coding-system 'utf-8)
+  (set-selection-coding-system 'utf-8)
+  (set-default-coding-systems 'utf-8)
+  (set-language-environment 'utf-8)
+  (prefer-coding-system 'utf-8)
+(when (display-graphic-p)
+   (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
+
+(use-package css-mode
+  :straight nil
+  :custom
+  (css-indent-offset 2))
+
+(use-package sgml-mode
+  :straight nil
+  :hook
+  (html-mode . (lambda () (setq me/pretty-print-function #'sgml-pretty-print)))
+  (html-mode . sgml-electric-tag-pair-mode)
+  (html-mode . sgml-name-8bit-mode)
+  :custom
+  (sgml-basic-offset 2))
+
+(use-package js2-mode
+  :straight nil
+  :mode (rx ".js" eos)
+  :custom
+  (js-indent-level 2)
+  (js-switch-indent-offset 2)
+  (js2-highlight-level 3)
+  (js2-idle-timer-delay 0)
+  (js2-mode-show-parse-errors nil)
+  (js2-mode-show-strict-warnings nil))
+
+(use-package rjsx-mode
+  :mode (rx (or ".jsx" (and "components/" (* anything) ".js")) eos)
+  :hook
+  (rjsx-mode . (lambda () (setq me/pretty-print-function #'sgml-pretty-print)))
+  (rjsx-mode . hydra-plus-set-super)
+  (rjsx-mode . sgml-electric-tag-pair-mode))
+
+(use-package typescript-mode
+  :init
+  (define-derived-mode typescript-tsx-mode typescript-mode "TSX")
+  (add-to-list 'auto-mode-alist `(,(rx ".tsx" eos) . typescript-tsx-mode))
+  :config
+  (add-hook 'typescript-tsx-mode-hook #'sgml-electric-tag-pair-mode)
+  :custom
+  (typescript-indent-level 2))
+
+(use-package json-mode
+  :mode (rx ".json" eos))
+
+(use-package org
+  :straight nil
+  :bind
+  (:map org-mode-map
+   ("C-<return>" . nil)
+   ("C-<tab>" . me/org-cycle-parent))
+:custom
+(org-adapt-indentation nil)
+(org-cycle-separator-lines 0)
+(org-descriptive-links nil)
+(org-edit-src-content-indentation 0)
+(org-edit-src-persistent-message nil)
+(org-fontify-done-headline t)
+(org-fontify-quote-and-verse-blocks t)
+(org-fontify-whole-heading-line t)
+(org-return-follows-link t)
+(org-src-preserve-indentation t)
+(org-src-tab-acts-natively t)
+(org-src-window-setup 'current-window)
+(org-startup-truncated nil)
+(org-support-shift-select 'always))
+
+(defun me/org-cycle-parent (argument)
+  "Go to the nearest parent heading and execute `org-cycle'."
+  (interactive "p")
+  (if (org-at-heading-p)
+      (outline-up-heading argument)
+    (org-previous-visible-heading argument))
+  (org-cycle))
+
+(use-package org-bullets
+:hook ((org-mode) . org-bullets-mode))
+
 (use-package all-the-icons
   :if (display-graphic-p)
   :commands all-the-icons-install-fonts
   :config (unless (find-font (font-spec :name "all-the-icons"))
             (all-the-icons-install-fonts t)))
 
-(use-package ibuffer
-  :ensure nil
-  :preface
-  (defvar protected-buffers '("*scratch*" "*Messages*")
-    "Buffer that cannot be killed.")
+(use-package flycheck
+  :init
+  (global-flycheck-mode))
+(use-package flycheck-tip
+  :bind
+  (("C-c C-n" . error-tip-cycle-dwim)
+   ("C-c C-p" . error-tip-cycle-dwim-reverse)) )
 
-  (defun my/protected-buffers ()
-    "Protect some buffers from being killed."
-    (dolist (buffer protected-buffers)
-      (with-current-buffer buffer
-        (emacs-lock-mode 'kill))))
-  :bind ("C-x C-b" . ibuffer)
-  :init (my/protected-buffers))
+(use-package which-key
+  :custom
+  (which-key-mode t))
 
 (use-package autorevert
-  :ensure nil
-  :delight auto-revert-mode
+  :straight nil
   :bind ("C-x R" . revert-buffer)
   :custom (auto-revert-verbose nil)
   :config (global-auto-revert-mode))
 
+(use-package consult
+:bind
+([remap goto-line] . consult-goto-line)
+([remap isearch-forward] . consult-line)
+([remap switch-to-buffer] . consult-buffer)
+("C-h M" . consult-minor-mode-menu)
+:custom
+(consult-line-start-from-top t)
+(consult-project-root-function #'me/project-root)
+(xref-show-definitions-function #'consult-xref)
+(xref-show-xrefs-function #'consult-xref))
+
+(use-package corfu
+  :hook
+  (after-init . corfu-global-mode)
+  :custom
+  (corfu-auto t)
+  (corfu-auto-delay .5))
+
+(use-package marginalia
+  :hook
+  (after-init . marginalia-mode))
+
+(use-package orderless
+  :custom
+  (completion-styles '(orderless))
+  (orderless-component-separator 'orderless-escapable-split-on-space))
+
 (use-package selectrum
-  :ensure t
-  :init (selectrum-mode +1))
+  :custom
+  (selectrum-resize nil)
+  :hook
+  (after-init . selectrum-mode))
