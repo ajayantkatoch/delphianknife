@@ -19,7 +19,6 @@
 (setq-default
  cursor-in-non-selected-windows t                 ; Hide the cursor in inactive windows
  help-window-select t                             ; Focus new help windows when opened
- inhibit-startup-screen t                         ; Disable start-up screen
  initial-scratch-message ""                       ; Empty the initial *scratch* buffer
  load-prefer-newer t                              ; Prefer the newest version of a file
  scroll-conservatively most-positive-fixnum       ; Always scroll by one line
@@ -31,6 +30,30 @@
 (fset 'yes-or-no-p 'y-or-n-p)                     ; Replace yes/no prompts with y/n
 (global-hl-line-mode)                             ; Hightlight current line
 (global-linum-mode 1)                             ; Display line number
+
+(use-package dashboard
+  :preface
+  (defun my/dashboard-banner ()
+    """Set a dashboard banner including information on package initialization time and garbage collections."""
+  (setq dashboard-banner-logo-title
+	(format "Emacs ready in %.2f seconds with %d garbage collections."
+		(float-time (time-subtract after-init-time before-init-time)) gcs-done)))
+  :init
+  (add-hook 'after-init-hook 'dashboard-refresh-buffer)
+  (add-hook 'dashboard-mode-hook 'my/dashboard-banner)
+  :config
+  (setq dashboard-startup-banner 'logo)
+  (dashboard-setup-startup-hook))
+    (setq dashboard-banner-logo-title "Welcome to Emacs Dashboard")
+    (setq dashboard-center-content t)
+    (setq dashboard-items '((recents  . 5)
+                        (bookmarks . 5)
+                        (projects . 5)
+                        (agenda . 5)
+                        (registers . 5)))
+
+(custom-set-variables
+ '(initial-frame-alist (quote ((fullscreen . maximized)))))
 
 (use-package kaolin-themes
   :straight kaolin-themes
@@ -45,6 +68,14 @@
   (scroll-bar-mode -1)
   (tool-bar-mode -1)
   (tooltip-mode -1))
+
+;; recentf stuff
+(require 'recentf)
+(recentf-mode 1)
+(setq recentf-max-menu-items 25)
+(global-set-key "\C-x\ \C-r" 'recentf-open-files)
+
+(global-set-key (kbd "<f12>") (lambda() (interactive)(find-file "~/repos/delphianknife/.emacs.d/settings.org")))
 
 (setq locale-coding-system 'utf-8)
   (set-terminal-coding-system 'utf-8)
@@ -150,6 +181,14 @@
 (use-package which-key
   :custom
   (which-key-mode t))
+
+(use-package yasnippet
+ :init (yas-global-mode))
+
+(use-package undo-tree
+:ensure
+:init
+(global-undo-tree-mode))
 
 (use-package autorevert
   :straight nil

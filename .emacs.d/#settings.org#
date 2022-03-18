@@ -1,0 +1,379 @@
+#+AUTHOR: Ajayant Katoch
+#+TITLE: GNU Emacs Configuration
+* Bootstrap 
+** Packages
+
+This configuration relies on =straight= over the default behavior from the built-in =package.el=. 
+
+For customizing and loading the packages, =use-package= incentivizes clearly defined, consistent and more efficient configurations for all packages used in
+this document.
+
+Bootstrap =straight=.
+
+#+BEGIN_SRC emacs-lisp
+    (defvar bootstrap-version) 
+    (let ((bootstrap-file
+	   (expand-file-name "straight/repos/straight.el/bootstrap.el"
+         user-emacs-directory))
+	   (bootstrap-version 5))
+	(unless (file-exists-p bootstrap-file)
+	  (let ((install.el
+		 "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"))
+	    (with-current-buffer
+		(url-retrieve-synchronously install.el 'silent 'inhibit-cookies)
+	      (goto-char (point-max))
+	      (eval-print-last-sexp))))
+	(load bootstrap-file nil 'nomessage))
+#+END_SRC
+
+Install =use-package= and defer all packages by default.
+
+#+BEGIN_SRC emacs-lisp
+  (setq-default straight-use-package-by-default t) 
+  (straight-use-package 'use-package)
+  (setq-default use-package-always-defer t)
+#+End_SRC
+
+** Defaults
+
+Defaults for a better user experience of GNU Emacs.
+#+begin_src emacs-lisp
+  (setq-default
+   cursor-in-non-selected-windows t                 ; Hide the cursor in inactive windows
+   help-window-select t                             ; Focus new help windows when opened
+   initial-scratch-message ""                       ; Empty the initial *scratch* buffer
+   load-prefer-newer t                              ; Prefer the newest version of a file
+   scroll-conservatively most-positive-fixnum       ; Always scroll by one line
+   select-enable-clipboard t                        ; Merge system's and Emacs' clipboard
+   use-package-always-ensure t                      ; Avoid the :ensure keyword for each package
+   user-full-name "Ajayant Katoch"                  ; Set the full name of the current user
+   user-mail-address "ajayant@outlook.com")         ; Set the email address of the current user
+  (column-number-mode 1)                            ; Show the column number
+  (fset 'yes-or-no-p 'y-or-n-p)                     ; Replace yes/no prompts with y/n
+  (global-hl-line-mode)                             ; Hightlight current line
+  (global-linum-mode 1)                             ; Display line number
+#+end_src
+
+** Dashboard
+
+#+begin_src emacs-lisp
+(use-package dashboard
+  :preface
+  (defun my/dashboard-banner ()
+    """Set a dashboard banner including information on package initialization time and garbage collections."""
+  (setq dashboard-banner-logo-title
+	(format "Emacs ready in %.2f seconds with %d garbage collections."
+		(float-time (time-subtract after-init-time before-init-time)) gcs-done)))
+  :init
+  (add-hook 'after-init-hook 'dashboard-refresh-buffer)
+  (add-hook 'dashboard-mode-hook 'my/dashboard-banner)
+  :config
+  (setq dashboard-startup-banner 'logo)
+  (dashboard-setup-startup-hook))
+    (setq dashboard-banner-logo-title "Welcome to Emacs Dashboard")
+    (setq dashboard-center-content t)
+    (setq dashboard-items '((recents  . 5)
+                        (bookmarks . 5)
+                        (projects . 5)
+                        (agenda . 5)
+                        (registers . 5)))
+#+end_src
+
+
+** Full Screen 
+#+begin_src emacs-lisp
+(custom-set-variables
+ '(initial-frame-alist (quote ((fullscreen . maximized)))))
+#+end_src
+
+** Theme
+   #+begin_src emacs-lisp
+   (use-package kaolin-themes
+     :straight kaolin-themes
+     :init
+     (load-theme 'kaolin-bubblegum t))
+
+   (use-package doom-modeline
+    :hook (after-init . doom-modeline-mode))
+    #+end_src
+
+** Remove Mouse Interface
+If you have to use the mouse with GNU Emacs, you probably have the wrong text
+editor. Let's remove all those menu items related to the mouse interface.
+#+begin_src emacs-lisp
+  (when window-system
+    (menu-bar-mode -1)
+    (scroll-bar-mode -1)
+    (tool-bar-mode -1)
+    (tooltip-mode -1))
+#+end_src
+
+** Recentf and Kebinding Init file
+#+begin_src emacs-lisp
+;; recentf stuff
+(require 'recentf)
+(recentf-mode 1)
+(setq recentf-max-menu-items 25)
+(global-set-key "\C-x\ \C-r" 'recentf-open-files)  
+#+end_src
+
+#+begin_src emacs-lisp
+(global-set-key (kbd "<f12>") (lambda() (interactive)(find-file "~/repos/delphianknife/.emacs.d/settings.org")))
+#+end_src
+
+** UTF8 everywhere
+#+begin_src emacs-lisp
+    (setq locale-coding-system 'utf-8)
+    (set-terminal-coding-system 'utf-8)
+    (set-keyboard-coding-system 'utf-8)
+    (set-selection-coding-system 'utf-8)
+    (set-default-coding-systems 'utf-8)
+    (set-language-environment 'utf-8)
+    (prefer-coding-system 'utf-8)
+  (when (display-graphic-p)
+     (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
+#+end_src
+
+* Languages
+** CSS
+   
+| =css-mode= | Built-in |
+#+BEGIN_SRC emacs-lisp
+(use-package css-mode
+  :straight nil
+  :custom
+  (css-indent-offset 2))
+#+END_SRC
+
+** HTML
+
+| =sgml-mode= | Built-in |
+
+HTML mode is defined in =sgml-mode.el=.
+
+#+BEGIN_SRC emacs-lisp
+(use-package sgml-mode
+  :straight nil
+  :hook
+  (html-mode . (lambda () (setq me/pretty-print-function #'sgml-pretty-print)))
+  (html-mode . sgml-electric-tag-pair-mode)
+  (html-mode . sgml-name-8bit-mode)
+  :custom
+  (sgml-basic-offset 2))
+#+END_SRC
+
+** JavaScript
+
+| =js2-mode=        | Built-in                                          |
+| =rjsx-mode=       | https://github.com/felipeochoa/rjsx-mode          |
+| =typescript-mode= | https://github.com/emacs-typescript/typescript.el |
+
+There might be confusion between =js-mode=, =js2-mode= and =js2-minor-mode=. All
+three are built-in JavaScript modes. The former is the original major mode to
+edit JavaScript files. The two latters are based on =js-mode=, one major mode
+with various improvements with regards to syntax highlighting amongst other
+things and one minor mode for earlier Emacs versions that might still be using
+=js-mode= as a major mode but willing to take advantage of the AST parsing
+implementation from =js2= as a minor mode.
+
+See [[https://github.com/mooz/js2-mode]] for more details.
+
+#+BEGIN_SRC emacs-lisp
+(use-package js2-mode
+  :straight nil
+  :mode (rx ".js" eos)
+  :custom
+  (js-indent-level 2)
+  (js-switch-indent-offset 2)
+  (js2-highlight-level 3)
+  (js2-idle-timer-delay 0)
+  (js2-mode-show-parse-errors nil)
+  (js2-mode-show-strict-warnings nil))
+
+(use-package rjsx-mode
+  :mode (rx (or ".jsx" (and "components/" (* anything) ".js")) eos)
+  :hook
+  (rjsx-mode . (lambda () (setq me/pretty-print-function #'sgml-pretty-print)))
+  (rjsx-mode . hydra-plus-set-super)
+  (rjsx-mode . sgml-electric-tag-pair-mode))
+
+(use-package typescript-mode
+  :init
+  (define-derived-mode typescript-tsx-mode typescript-mode "TSX")
+  (add-to-list 'auto-mode-alist `(,(rx ".tsx" eos) . typescript-tsx-mode))
+  :config
+  (add-hook 'typescript-tsx-mode-hook #'sgml-electric-tag-pair-mode)
+  :custom
+  (typescript-indent-level 2))
+#+END_SRC
+
+** JSON
+
+| =json-mode= | https://github.com/joshwnj/json-mode |
+
+#+BEGIN_SRC emacs-lisp
+(use-package json-mode
+  :mode (rx ".json" eos))
+#+END_SRC
+
+** Org
+#+begin_src emacs-lisp
+  (use-package org
+    :straight nil
+    :bind
+    (:map org-mode-map
+     ("C-<return>" . nil)
+     ("C-<tab>" . me/org-cycle-parent))
+  :custom
+  (org-adapt-indentation nil)
+  (org-cycle-separator-lines 0)
+  (org-descriptive-links nil)
+  (org-edit-src-content-indentation 0)
+  (org-edit-src-persistent-message nil)
+  (org-fontify-done-headline t)
+  (org-fontify-quote-and-verse-blocks t)
+  (org-fontify-whole-heading-line t)
+  (org-return-follows-link t)
+  (org-src-preserve-indentation t)
+  (org-src-tab-acts-natively t)
+  (org-src-window-setup 'current-window)
+  (org-startup-truncated nil)
+  (org-support-shift-select 'always))
+#+end_src
+#+begin_src emacs-lisp
+(defun me/org-cycle-parent (argument)
+  "Go to the nearest parent heading and execute `org-cycle'."
+  (interactive "p")
+  (if (org-at-heading-p)
+      (outline-up-heading argument)
+    (org-previous-visible-heading argument))
+  (org-cycle))
+  #+end_src
+#+begin_src emacs-lisp
+  (use-package org-bullets
+  :hook ((org-mode) . org-bullets-mode))
+#+end_src
+* Advance Configurations and Packages 
+** all-the-icons
+To integrate icons with =doom-modeline= and other packages, [[https://github.com/domtronn/all-the-icons.el/][all-the-icons]] is the best package that you can have with GNU Emacs. To download the icons on your machine, you must run the =all-the-icons-install-fonts= command when you install this package.
+#+begin_src emacs-lisp
+  (use-package all-the-icons
+    :if (display-graphic-p)
+    :commands all-the-icons-install-fonts
+    :config (unless (find-font (font-spec :name "all-the-icons"))
+              (all-the-icons-install-fonts t)))
+#+end_src
+** flycheck
+#+begin_src emacs-lisp
+(use-package flycheck
+  :init
+  (global-flycheck-mode))
+(use-package flycheck-tip
+  :bind
+  (("C-c C-n" . error-tip-cycle-dwim)
+   ("C-c C-p" . error-tip-cycle-dwim-reverse)) )
+#+end_src
+** which-key
+#+begin_src emacs-lisp
+(use-package which-key
+  :custom
+  (which-key-mode t)) 
+#+end_src
+** yasnippet
+#+begin_src emacs-lisp
+(use-package yasnippet
+ :init (yas-global-mode))
+ #+end_src
+** undo-tree
+#+begin_src emacs-lisp 
+(use-package undo-tree
+:ensure
+:init
+(global-undo-tree-mode))  
+#+end_src
+
+* Management
+Section dedicated to managing buffers, files, and windows on GNU Emacs to
+provide a more pleasant experience.
+** Files 
+Sometimes you may want to discard your changes to a file and revert to the saved
+version of this file.
+#+begin_src emacs-lisp
+  (use-package autorevert
+    :straight nil
+    :bind ("C-x R" . revert-buffer)
+    :custom (auto-revert-verbose nil)
+    :config (global-auto-revert-mode))
+#+end_src
+
+** Completion
+
+| =consult=    | https://github.com/minad/consult      |
+| =corfu=      | https://github.com/minad/corfu        |
+| =marginalia= | https://github.com/minad/marginalia   |
+| =orderless=  | https://github.com/oantolin/orderless |
+| =vertico=    | https://github.com/minad/vertico      |
+
+*** Consult 
+#+begin_src emacs-lisp
+    (use-package consult
+  :bind
+  ([remap goto-line] . consult-goto-line)
+  ([remap isearch-forward] . consult-line)
+  ([remap switch-to-buffer] . consult-buffer)
+  ("C-h M" . consult-minor-mode-menu)
+  :custom
+  (consult-line-start-from-top t)
+  (consult-project-root-function #'me/project-root)
+  (xref-show-definitions-function #'consult-xref)
+  (xref-show-xrefs-function #'consult-xref))
+#+end_src
+
+*** Corfu
+
+Minimal completion-at-point. This is an experiment to try and replace the
+heavier =company= alternative. With =display-line-numbers-type=, prefer the
+='visual= value as ='relative= numbers break when the completion overlay opens.
+
+#+BEGIN_SRC emacs-lisp
+(use-package corfu
+  :hook
+  (after-init . corfu-global-mode)
+  :custom
+  (corfu-auto t)
+  (corfu-auto-delay .5))
+#+END_SRC
+
+*** Marginalia
+
+#+BEGIN_SRC emacs-lisp
+(use-package marginalia
+  :hook
+  (after-init . marginalia-mode))
+#+END_SRC
+
+*** Orderless
+
+Allow completion based on space-separated tokens, out of order.
+
+#+BEGIN_SRC emacs-lisp
+(use-package orderless
+  :custom
+  (completion-styles '(orderless))
+  (orderless-component-separator 'orderless-escapable-split-on-space))
+#+END_SRC
+
+*** Vertico
+
+Prettify the completion minibuffer featuring keyboard-driven vertical navigation
+with live-reload.
+
+#+BEGIN_SRC emacs-lisp
+(use-package selectrum
+  :custom
+  (selectrum-resize nil)
+  :hook
+  (after-init . selectrum-mode))
+#+END_SRC
+
+
